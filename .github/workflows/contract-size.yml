@@ -11,23 +11,43 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
 
-      - name: Install Foundry
-        uses: foundry-rs/foundry-toolchain@v1
-        with:
-          version: v1.2.3
-      
-      - name: Install Dependencies
-        run: |
-          cd service_contracts 
-          forge install
+    - name: Install Foundry
+      uses: foundry-rs/foundry-toolchain@v1
+      with:
+        version: v1.2.3
 
-      - name: Install jq
-        run: sudo apt-get install -y jq
+    - name: Install dependencies
+      run: |
+        cd service_contracts
+        forge install
 
-      - name: Check contract size
-        run: |
-          cd service_contracts
-          make contract-size-check
+    - name: Install jq
+      run: sudo apt-get install -y jq
+
+    - name: Build sizes for current commit
+      run: |
+        cd service_contracts
+        forge build --sizes --json > current_sizes.json
+
+    - name: Fetch and build base branch sizes (PR only)
+      if: github.event_name == 'pull_request'
+      run: |
+        git fetch origin main
+        mkdir base_build
+        git worktree add base_build origin/main
+        cd base_build/service_contracts
+        forge install
+        forge build --sizes --json > ../base_sizes.json
+        cd ../..
+        git worktree remove base_build
+
+    - name: Compare contract sizes and report
+      run: |
+        if [ -f service_contracts/base_sizes.json ]; then
+          node service_contracts/scripts/compare_sizes.js service_contracts/current_sizes.json service_contracts/base_sizes.json
+        else
+          echo "No base size data found. Skipping delta comparison."
+        fi
