@@ -47,22 +47,25 @@ jobs:
           forge install
           forge build --sizes --json > ../base_sizes.json
           cd ../..
-          git worktree remove base_build
+          git worktree remove --force base_build
 
       - name: Compare contract sizes
         run: |
           cd service_contracts
-          CONTRACT_SIZE_LIMIT=24576
-
+          export CONTRACT_SIZE_LIMIT=24576
           if [ -f base_sizes.json ]; then
             printf "| %-60s | %-15s | %-15s | %-10s | %-10s | %-18s |\n" "Contract" "Current Size" "Base Size" "Delta" "% Change" "Status"
-            printf "| %-.60s | %-.15s | %-.15s | %-.10s | %-.10s | %-.18s |\n"\
+            printf "| %-.60s | %-.15s | %-.15s | %-.10s | %-.10s | %-.18s |\n" \
               "------------------------------------------------------------" "---------------" "---------------" "----------" "----------" "------------------"
 
             jq -s '
-              def status(delta; curr): if curr > env.CONTRACT_SIZE_LIMIT then "Limit Exceeded" else if delta > 0 then "Increased" else if delta < 0 then "Decreased" else "Unchanged" end end end;
+              def status(delta; curr): 
+                if curr > (env.CONTRACT_SIZE_LIMIT | tonumber) then "Limit Exceeded"
+                else if delta > 0 then "Increased"
+                else if delta < 0 then "Decreased"
+                else "Unchanged" end end end;
               def bytes_fmt(n): "\(n) bytes";
-              def pct(curr; base): if base == 0 then "N/A" else ((curr - base) / base * 100 | tostring + "%") end;
+              def pct(curr; base): if base == 0 then "N/A" else (((curr - base) / base) * 100 | tostring + "%") end;
 
               (.[0] * .[1]) as $merged
               | ($merged | keys_unsorted[]) as $k
