@@ -50,10 +50,10 @@ jq -s --argjson limit "$CONTRACT_SIZE_LIMIT" '
   | $all_keys[] as $k
   | {
       contract: $k,
-      curr: (.[$k].runtime_size // 0),
+      curr: (.[0][$k].runtime_size // 0),
       base: (.[1][$k].runtime_size // 0),
       is_new: (.[1][$k] == null),
-      is_removed: (.[$k] == null)
+      is_removed: (.[0][$k] == null)
     }
   | .delta = (.curr - .base)
   | {

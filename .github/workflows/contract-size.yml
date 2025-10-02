@@ -44,8 +44,8 @@ jobs:
           mkdir base_build
           git worktree add base_build origin/main
           cd base_build/service_contracts
-          if [ -d lib ]
-            then forge install --offline
+          if [ -d lib ]; then
+           forge install -- --offline
           else 
             forge install
           fi
@@ -56,7 +56,7 @@ jobs:
       - name: Compare contract sizes
         run: |
           cd service_contracts
-          if [ -f base_sizes.json ]
+          if [ -f base_sizes.json ]; then
             ./tools/compare_contract_sizes.sh current_sizes.json base_sizes.json
           else
             echo "No base size data found - skipping delta comparison."
