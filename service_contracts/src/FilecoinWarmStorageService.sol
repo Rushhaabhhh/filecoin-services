@@ -126,6 +126,15 @@ contract FilecoinWarmStorageService is
         uint256 dataSetId; // DataSet ID
     }
 
+    enum DataSetStatus {
+        // Data set doesn't yet exist or has been deleted
+        NotFound,
+        // Data set is active
+        Active,
+        // Data set is in the process of being terminated
+        Terminating
+    }
+
     // Decode structure for data set creation extra data
     struct DataSetCreateData {
         address payer;
@@ -202,8 +211,6 @@ contract FilecoinWarmStorageService is
 
     bytes32 private constant SCHEDULE_PIECE_REMOVALS_TYPEHASH =
         keccak256("SchedulePieceRemovals(uint256 clientDataSetId,uint256[] pieceIds)");
-
-    bytes32 private constant DELETE_DATA_SET_TYPEHASH = keccak256("DeleteDataSet(uint256 clientDataSetId)");
 
     // =========================================================================
     // Storage variables
@@ -611,26 +618,21 @@ contract FilecoinWarmStorageService is
     }
 
     /**
-     * @notice Handles data set deletion and terminates the payment rail
+     * @notice Handles data set deletion after the payment rails were terminated
      * @dev Called by the PDPVerifier contract when a data set is deleted
      * @param dataSetId The ID of the data set being deleted
-     * @param extraData Signature for authentication
      */
     function dataSetDeleted(
         uint256 dataSetId,
         uint256, // deletedLeafCount, - not used
-        bytes calldata extraData
+        bytes calldata // extraData, - not used
     ) external onlyPDPVerifier {
         // Verify the data set exists in our mapping
         DataSetInfo storage info = dataSetInfo[dataSetId];
         require(info.pdpRailId != 0, Errors.DataSetNotRegistered(dataSetId));
-        (bytes memory signature) = abi.decode(extraData, (bytes));
 
         // Get the payer address for this data set
         address payer = dataSetInfo[dataSetId].payer;
-
-        // Verify the client's signature
-        verifyDeleteDataSetSignature(payer, info.clientDataSetId, signature);
 
         // Check if the data set's payment rails have finalized
         require(
@@ -1471,32 +1473,6 @@ contract FilecoinWarmStorageService is
         require(
             sessionKeyRegistry.authorizationExpiry(payer, recoveredSigner, SCHEDULE_PIECE_REMOVALS_TYPEHASH)
                 >= block.timestamp,
-            Errors.InvalidSignature(payer, recoveredSigner)
-        );
-    }
-
-    /**
-     * @notice Verifies a signature for the DeleteDataSet operation
-     * @param payer The address of the payer who should have signed the message
-     * @param clientDataSetId The ID of the data set
-     * @param signature The signature bytes (v, r, s)
-     */
-    function verifyDeleteDataSetSignature(address payer, uint256 clientDataSetId, bytes memory signature)
-        internal
-        view
-    {
-        // Prepare the message hash that was signed
-        bytes32 structHash = keccak256(abi.encode(DELETE_DATA_SET_TYPEHASH, clientDataSetId));
-        bytes32 digest = _hashTypedDataV4(structHash);
-
-        // Recover signer address from the signature
-        address recoveredSigner = recoverSigner(digest, signature);
-
-        if (payer == recoveredSigner) {
-            return;
-        }
-        require(
-            sessionKeyRegistry.authorizationExpiry(payer, recoveredSigner, DELETE_DATA_SET_TYPEHASH) >= block.timestamp,
             Errors.InvalidSignature(payer, recoveredSigner)
         );
     }
