@@ -22,8 +22,8 @@ contract FilecoinWarmStorageServiceStateView is IPDPProvingSchedule {
         return service.challengeWindow();
     }
 
-    function clientDataSetIDs(address payer) external view returns (uint256) {
-        return service.clientDataSetIDs(payer);
+    function clientDataSetIds(address payer, uint256 clientDataSetId) external view returns (uint256) {
+        return service.clientDataSetIds(payer, clientDataSetId);
     }
 
     function clientDataSets(address payer) external view returns (uint256[] memory dataSetIds) {
@@ -131,6 +131,10 @@ contract FilecoinWarmStorageServiceStateView is IPDPProvingSchedule {
         return service.nextPDPChallengeWindowStart(setId);
     }
 
+    function nextUpgrade() external view returns (address nextImplementation, uint96 afterEpoch) {
+        return service.nextUpgrade();
+    }
+
     function provenPeriods(uint256 dataSetId, uint256 periodId) external view returns (bool) {
         return service.provenPeriods(dataSetId, periodId);
     }
@@ -149,5 +153,9 @@ contract FilecoinWarmStorageServiceStateView is IPDPProvingSchedule {
 
     function railToDataSet(uint256 railId) external view returns (uint256) {
         return service.railToDataSet(railId);
+    }
+
+    function serviceCommissionBps() external view returns (uint256) {
+        return service.serviceCommissionBps();
     }
 }

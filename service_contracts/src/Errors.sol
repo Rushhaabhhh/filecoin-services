@@ -24,7 +24,9 @@ library Errors {
         /// ServiceProviderRegistry contract address
         ServiceProviderRegistry,
         /// FilBeam beneficiary address
-        FilBeamBeneficiary
+        FilBeamBeneficiary,
+        /// View contract address
+        View
     }
 
     /// @notice Enumerates the types of commission rates used in the protocol
@@ -38,6 +40,11 @@ library Errors {
     /// @dev Used for parameter validation when a non-zero address is required
     /// @param field The specific address field that was zero (see enum {AddressField})
     error ZeroAddress(AddressField field);
+
+    /// @notice Tried to set an address that can only be set once
+    /// @dev Used for parameter validation when a non-zero address is required
+    /// @param field The specific address field already set (see enum {AddressField})
+    error AddressAlreadySet(AddressField field);
 
     /// @notice Only the PDPVerifier contract can call this function
     /// @param expected The expected PDPVerifier address
@@ -57,6 +64,14 @@ library Errors {
     /// @param maxProvingPeriod The maximum allowed proving period
     /// @param challengeWindowSize The provided challenge window size
     error InvalidChallengeWindowSize(uint256 maxProvingPeriod, uint256 challengeWindowSize);
+
+    /// @notice The service name length must be >0 and <= 256
+    /// @param length the attempted length
+    error InvalidServiceNameLength(uint256 length);
+
+    /// @notice The service description length must be >0 and <= 256
+    /// @param length the attempted length
+    error InvalidServiceDescriptionLength(uint256 length);
 
     /// @notice This function can only be called by the contract itself during upgrade
     /// @param expected The expected caller (the contract address)
@@ -78,6 +93,10 @@ library Errors {
     /// @notice Data set is not registered with the payment system
     /// @param dataSetId The ID of the data set
     error DataSetNotRegistered(uint256 dataSetId);
+
+    /// @notice This client dataset ID has already been registered to a dataset
+    /// @param clientDataSetId The attempted but existing ID
+    error ClientDataSetAlreadyRegistered(uint256 clientDataSetId);
 
     /// @notice Only one proof of possession allowed per proving period
     /// @param dataSetId The data set ID
@@ -128,6 +147,18 @@ library Errors {
     /// @param dataSetId The data set ID
     error DataSetPaymentAlreadyTerminated(uint256 dataSetId);
 
+    /// @notice CDN payment is already terminated
+    /// @param dataSetId The data set ID
+    error CDNPaymentAlreadyTerminated(uint256 dataSetId);
+
+    /// @notice Cache-miss payment is already terminated
+    /// @param dataSetId The data set ID
+    error CacheMissPaymentAlreadyTerminated(uint256 dataSetId);
+
+    /// @notice Invalid top-up amount - both CDN and cache miss amounts are zero
+    /// @param dataSetId The data set ID
+    error InvalidTopUpAmount(uint256 dataSetId);
+
     /// @notice The specified data set does not exist or is not valid
     /// @param dataSetId The data set ID that was invalid or unregistered
     error InvalidDataSetId(uint256 dataSetId);
@@ -138,6 +169,12 @@ library Errors {
     /// @param expectedPayee The payee address
     /// @param caller The actual caller
     error CallerNotPayerOrPayee(uint256 dataSetId, address expectedPayer, address expectedPayee, address caller);
+
+    /// @notice Only payer can top-up CDN payment rail balance
+    /// @param dataSetId The data set ID
+    /// @param expectedPayer The payer address
+    /// @param caller The actual caller
+    error CallerNotPayer(uint256 dataSetId, address expectedPayer, address caller);
 
     /// @notice Data set is beyond its payment end epoch
     /// @param dataSetId The data set ID
@@ -246,13 +283,8 @@ library Errors {
     /// @param actual The caller address
     error OnlyFilBeamControllerAllowed(address expected, address actual);
 
-    /// @notice CDN payment is already terminated
-    /// @param dataSetId The data set ID
-    error FilBeamPaymentAlreadyTerminated(uint256 dataSetId);
-
     /// @notice Payment rails have not finalized yet, so the data set can't be deleted
     /// @param dataSetId The data set ID
     /// @param pdpEndEpoch The end epoch when the PDP payment rail will finalize
-    /// @param cdnEndEpoch The end epoch when the CDN payment rail will finalize (0 if no CDN)
-    error PaymentRailsNotFinalized(uint256 dataSetId, uint256 pdpEndEpoch, uint256 cdnEndEpoch);
+    error PaymentRailsNotFinalized(uint256 dataSetId, uint256 pdpEndEpoch);
 }

@@ -146,7 +146,7 @@ contract FilecoinWarmStorageServiceOwnerTest is Test {
                     maxPieceSizeInBytes: 1024 * 1024,
                     ipniPiece: false,
                     ipniIpfs: false,
-                    storagePricePerTibPerMonth: 25 * 10 ** 5, // 2.5 USDFC per TiB per month
+                    storagePricePerTibPerMonth: 5 * 10 ** 6, // 5 USDFC per TiB per month
                     minProvingPeriodInEpochs: 2880,
                     location: "US",
                     paymentTokenAddress: IERC20(address(0))
@@ -172,14 +172,20 @@ contract FilecoinWarmStorageServiceOwnerTest is Test {
         metadataValues[0] = "Test Data Set";
 
         FilecoinWarmStorageService.DataSetCreateData memory createData = FilecoinWarmStorageService.DataSetCreateData({
+            clientDataSetId: 0,
             metadataKeys: metadataKeys,
             metadataValues: metadataValues,
             payer: payer,
             signature: FAKE_SIGNATURE
         });
 
-        bytes memory encodedData =
-            abi.encode(createData.payer, createData.metadataKeys, createData.metadataValues, createData.signature);
+        bytes memory encodedData = abi.encode(
+            createData.payer,
+            createData.clientDataSetId,
+            createData.metadataKeys,
+            createData.metadataValues,
+            createData.signature
+        );
 
         // Setup payment approval
         vm.startPrank(payer);

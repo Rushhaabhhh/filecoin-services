@@ -78,8 +78,18 @@ library FilecoinWarmStorageServiceStateInternalLibrary {
         return CHALLENGES_PER_PROOF;
     }
 
-    function clientDataSetIDs(FilecoinWarmStorageService service, address payer) internal view returns (uint256) {
-        return uint256(service.extsload(keccak256(abi.encode(payer, StorageLayout.CLIENT_DATA_SET_IDS_SLOT))));
+    function clientDataSetIds(FilecoinWarmStorageService service, address payer, uint256 clientDataSetId)
+        internal
+        view
+        returns (uint256)
+    {
+        return uint256(
+            service.extsload(
+                keccak256(
+                    abi.encode(clientDataSetId, keccak256(abi.encode(payer, StorageLayout.CLIENT_DATA_SET_IDS_SLOT)))
+                )
+            )
+        );
     }
 
     function provenThisPeriod(FilecoinWarmStorageService service, uint256 dataSetId) internal view returns (bool) {
@@ -108,7 +118,6 @@ library FilecoinWarmStorageServiceStateInternalLibrary {
         info.clientDataSetId = uint256(info11[7]);
         info.pdpEndEpoch = uint256(info11[8]);
         info.providerId = uint256(info11[9]);
-        info.cdnEndEpoch = uint256(info11[10]);
         info.dataSetId = dataSetId;
     }
 
@@ -149,9 +158,13 @@ library FilecoinWarmStorageServiceStateInternalLibrary {
         view
         returns (bool)
     {
-        return service.extsload(
-            keccak256(abi.encode(periodId, keccak256(abi.encode(dataSetId, StorageLayout.PROVEN_PERIODS_SLOT))))
-        ) != bytes32(0);
+        return uint256(
+            service.extsload(
+                keccak256(
+                    abi.encode(periodId >> 8, keccak256(abi.encode(dataSetId, StorageLayout.PROVEN_PERIODS_SLOT)))
+                )
+            )
+        ) & (1 << (periodId & 255)) != 0;
     }
 
     function provingActivationEpoch(FilecoinWarmStorageService service, uint256 dataSetId)
@@ -198,6 +211,10 @@ library FilecoinWarmStorageServiceStateInternalLibrary {
         challengeWindowSize = challengeWindow(service);
         challengesPerProof = CHALLENGES_PER_PROOF;
         initChallengeWindowStart = block.number + maxProvingPeriod - challengeWindowSize;
+    }
+
+    function serviceCommissionBps(FilecoinWarmStorageService service) internal view returns (uint256) {
+        return uint256(service.extsload(StorageLayout.SERVICE_COMMISSION_BPS_SLOT));
     }
 
     /**
@@ -486,5 +503,21 @@ library FilecoinWarmStorageServiceStateInternalLibrary {
      */
     function filBeamControllerAddress(FilecoinWarmStorageService service) internal view returns (address) {
         return address(uint160(uint256(service.extsload(StorageLayout.FIL_BEAM_CONTROLLER_ADDRESS_SLOT))));
+    }
+
+    /**
+     * @notice Get information about the next contract upgrade
+     * @param service The service contract
+     * @return nextImplementation The next code for the contract
+     * @return afterEpoch The earliest the upgrade may complete
+     */
+    function nextUpgrade(FilecoinWarmStorageService service)
+        internal
+        view
+        returns (address nextImplementation, uint96 afterEpoch)
+    {
+        bytes32 upgradeInfo = service.extsload(StorageLayout.NEXT_UPGRADE_SLOT);
+        nextImplementation = address(uint160(uint256(upgradeInfo)));
+        afterEpoch = uint96(uint256(upgradeInfo) >> 160);
     }
 }
